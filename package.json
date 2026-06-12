@@ -1,0 +1,106 @@
+{
+  "name": "opengnb-gui",
+  "version": "1.0.0",
+  "private": true,
+  "description": "OpenGNB Windows Desktop GUI - P2P Virtual Network Manager",
+  "author": "OpenGNB",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "cross-env UMI_ENV=dev max dev",
+    "dev:electron": "concurrently \"cross-env UMI_ENV=dev max dev\" \"wait-on http://localhost:8000 && electron .\"",
+    "build": "max build",
+    "build:electron": "max build && tsc -p electron/tsconfig.json && electron-builder && node D:/source/trace/shellscript/opengnb-gui/2026-06-11/verify-asar.js",
+    "start": "cross-env UMI_ENV=dev max dev",
+    "start:no-mock": "cross-env MOCK=none max dev",
+    "lint": "max lint",
+    "tsc": "tsc --noEmit",
+    "preview": "max preview --port 8000",
+    "electron:compile": "tsc -p electron/tsconfig.json",
+    "electron:dev": "concurrently \"cross-env UMI_ENV=dev max dev\" \"wait-on http://localhost:8000 && electron .\"",
+    "electron:build": "max build && tsc -p electron/tsconfig.json && electron-builder && node D:/source/trace/shellscript/opengnb-gui/2026-06-11/verify-asar.js",
+    "postinstall": "max setup"
+  },
+  "browserslist": [
+    "defaults"
+  ],
+  "dependencies": {
+    "@ant-design/icons": "^6.2.3",
+    "@ant-design/pro-components": "^3.1.12-0",
+    "@ant-design/plots": "^2.6.8",
+    "@rc-component/util": "^1.11.0",
+    "@tanstack/react-query": "^5.101.0",
+    "antd": "^6.4.3",
+    "antd-style": "^4.1.0",
+    "clsx": "^2.1.1",
+    "dayjs": "^1.11.20",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
+  },
+  "devDependencies": {
+    "@ant-design/cli": "^6.4.3",
+    "@tailwindcss/postcss": "^4.3.0",
+    "@types/node": "^25.9.1",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@umijs/lint": "^4.6.51",
+    "@umijs/max": "^4.6.57",
+    "concurrently": "^9.1.2",
+    "cross-env": "^10.1.0",
+    "electron": "^35.2.1",
+    "electron-builder": "^26.0.12",
+    "lint-staged": "^17.0.2",
+    "tailwindcss": "^4.3.0",
+    "typescript": "^6.0.3",
+    "wait-on": "^8.0.3"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "build": {
+    "appId": "com.opengnb.gui",
+    "productName": "OpenGNB",
+    "directories": {
+      "output": "D:/source/trace/project1/opengnb-gui-dist-v8"
+    },
+    "files": [
+      {
+        "from": "dist",
+        "to": "dist",
+        "filter": ["**/*"]
+      },
+      "electron/main.js",
+      "electron/preload.js",
+      "electron/gnb-process.js",
+      "electron/gnb-config.js",
+      "electron/gnb-crypto.js",
+      "electron/gnb-ping.js",
+      "electron/gnb-settings.js",
+      "electron/tray.js",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "bin",
+        "to": "bin",
+        "filter": ["**/*", "!safe/conf/**"]
+      }
+    ],
+    "publish": {
+      "provider": "generic",
+      "url": "https://example.com/releases"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "public/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "include": "build/installer.nsh"
+    }
+  }
+}

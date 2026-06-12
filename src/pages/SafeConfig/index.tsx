@@ -21,6 +21,7 @@ import {
   Divider,
   Card,
   Modal,
+  Tour,
 } from 'antd';
 import {
   PlusOutlined,
@@ -37,6 +38,7 @@ import {
   FileAddOutlined,
   ThunderboltOutlined,
   LoadingOutlined,
+  QuestionCircleOutlined,
 } from '@ant-design/icons';
 import {
   PageContainer,
@@ -134,6 +136,10 @@ const SafeConfig: React.FC = () => {
   const [indexNodes, setIndexNodes] = useState<IndexNode[]>([]);
   /** 正在测试的 Index 节点 ID */
   const [testingId, setTestingId] = useState<string | null>(null);
+  /** Safe 新手引导是否打开 */
+  const [safeTourOpen, setSafeTourOpen] = useState(false);
+  /** 编辑抽屉当前激活的配置页签 */
+  const [activeTabKey, setActiveTabKey] = useState('nodeConf');
 
   /** 基础配置表单实例 */
   const [nodeConfForm] = Form.useForm();
@@ -168,8 +174,34 @@ const SafeConfig: React.FC = () => {
     const unsubscribe = indexNodeManager.subscribe(() => {
       setIndexNodes(indexNodeManager.getAllWithStatus());
     });
-    return () => unsubscribe();
+    const tourTimer = setTimeout(() => {
+      if (localStorage.getItem('opengnb-tour-safe-done') !== 'true') {
+        setSafeTourOpen(true);
+      }
+    }, 500);
+    return () => {
+      unsubscribe();
+      clearTimeout(tourTimer);
+    };
   }, [loadConfigs]);
+
+  /**
+   * @name 关闭 Safe 新手引导
+   */
+  const closeSafeTour = () => {
+    localStorage.setItem('opengnb-tour-safe-done', 'true');
+    setSafeTourOpen(false);
+  };
+
+  /**
+   * @name 根据 Safe 新手引导步骤切换配置页签
+   * @param current 当前步骤索引
+   */
+  const handleSafeTourChange = (current: number) => {
+    if (current === 2) setActiveTabKey('keyManage');
+    if (current === 3 || current === 6) setActiveTabKey('addressConf');
+    if (current === 4) setActiveTabKey('routeConf');
+  };
 
   /**
    * @name 打开编辑抽屉并加载详情
@@ -177,6 +209,7 @@ const SafeConfig: React.FC = () => {
    */
   const handleEdit = async (dirName: string) => {
     setCurrentDirName(dirName);
+    setActiveTabKey('nodeConf');
     setDrawerVisible(true);
     setDetailLoading(true);
     try {
@@ -727,6 +760,7 @@ const SafeConfig: React.FC = () => {
           </Popconfirm>
           <Tooltip title="启动 Safe 模式节点">
             <Button
+              id="safe-start-button"
               type="link"
               size="small"
               icon={<PlayCircleOutlined />}
@@ -946,11 +980,55 @@ const SafeConfig: React.FC = () => {
     </Card>
   );
 
+  /** Safe 专业模式新手引导步骤 */
+  const safeTourSteps = [
+    {
+      title: '欢迎来到 Safe专家模式新手教程',
+      description: 'Safe 模式基于 Ed25519 密钥认证，提供更安全的节点认证和通信方式，适合固定成员组网。',
+      target: null,
+    },
+    {
+      title: '创建节点配置',
+      description: '点击新建配置，输入节点ID，系统会自动生成配置目录和密钥对。',
+      target: () => document.getElementById('safe-create-config') || document.body,
+    },
+    {
+      title: '交换并导入公钥',
+      description: 'Safe 模式需要双方交换公钥才能通信。如果是多方组网，需要将您的公钥发送给所有对端节点，同时获取所有对端的公钥并导入。',
+      target: () => document.getElementById('safe-key-section') || document.body,
+    },
+    {
+      title: '添加对端地址',
+      description: '在地址配置中添加 Index 服务器和对端节点地址信息，确保节点能发现对方。',
+      target: () => document.getElementById('safe-address-section') || document.body,
+    },
+    {
+      title: '配置多方路由',
+      description: '把多方的节点ID和虚拟网络IP都添加到“路由配置”页面，少一个都不行。同时，所有对端的 route.conf 也必须添加好本节点的节点ID、虚拟网络IP和掩码。',
+      target: () => document.getElementById('safe-route-section') || document.body,
+    },
+    {
+      title: '启动并测试连接',
+      description: '配置完成后点击启动，节点将以 Safe 模式运行。通道通常在约20秒后建立完成，可在仪表盘查看连接状态，并在 CMD 中执行 ping 172.31.0.1 -t 这类命令持续测试对端虚拟IP。',
+      target: () => document.getElementById('safe-start-button') || document.body,
+    },
+    {
+      title: '连接不到排查',
+      description: '如果超过30秒 ping 不通，需要排查两端的 address.conf。本机这里最好添加对端节点的ID、公网地址和端口；对端节点也需要在它自己的 address.conf 中添加本机节点的ID、公网地址和端口。同时检查双方防火墙对应端口是否放行。',
+      target: () => document.getElementById('safe-node-peer-section') || document.body,
+    },
+  ];
+
   return (
     <PageContainer
       header={{
         title: '专业配置管理',
         subTitle: '管理 Safe 模式节点配置文件',
+        extra: [
+          <Button key="tour" icon={<QuestionCircleOutlined />} onClick={() => setSafeTourOpen(true)}>
+            新手引导
+          </Button>,
+        ],
       }}
     >
       <ProTable<SafeConfigSummary>
@@ -961,6 +1039,7 @@ const SafeConfig: React.FC = () => {
         search={false}
         toolBarRender={() => [
           <Button
+            id="safe-create-config"
             key="create"
             type="primary"
             icon={<PlusOutlined />}
@@ -1070,7 +1149,8 @@ const SafeConfig: React.FC = () => {
         }
       >
         <Tabs
-          defaultActiveKey="nodeConf"
+          activeKey={activeTabKey}
+          onChange={setActiveTabKey}
           items={[
             {
               key: 'nodeConf',
@@ -1122,7 +1202,7 @@ const SafeConfig: React.FC = () => {
               key: 'addressConf',
               label: '地址配置',
               children: (
-                <div>
+                <div id="safe-address-section">
                   <Card title="Index 服务器" size="small" style={{ marginBottom: 16 }}>
                     <Form.Item label="Index 节点" tooltip="从 Index 节点管理中选择，切换时需确认">
                       <Select
@@ -1158,6 +1238,7 @@ const SafeConfig: React.FC = () => {
                     </Form.Item>
                   </Card>
                   <Card
+                    id="safe-node-peer-section"
                     title="Node 对端节点"
                     size="small"
                     extra={
@@ -1182,7 +1263,7 @@ const SafeConfig: React.FC = () => {
               key: 'routeConf',
               label: '路由配置',
               children: (
-                <div>
+                <div id="safe-route-section">
                   <div style={{ marginBottom: 12 }}>
                     <Button type="dashed" icon={<PlusOutlined />} onClick={handleAddRoute}>
                       添加路由
@@ -1203,7 +1284,7 @@ const SafeConfig: React.FC = () => {
               key: 'keyManage',
               label: '密钥管理',
               children: (
-                <div>
+                <div id="safe-key-section">
                   <div style={{ marginBottom: 16 }}>
                     <Button
                       type="primary"
@@ -1292,6 +1373,13 @@ const SafeConfig: React.FC = () => {
           <Input.TextArea rows={8} placeholder="粘贴对端节点的公钥内容" style={{ fontFamily: 'monospace' }} />
         </Form.Item>
       </ModalForm>
+      <Tour
+        open={safeTourOpen}
+        onClose={closeSafeTour}
+        onChange={handleSafeTourChange}
+        steps={safeTourSteps}
+        scrollIntoViewOptions
+      />
     </PageContainer>
   );
 };

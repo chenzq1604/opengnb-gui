@@ -15,7 +15,7 @@ export default defineConfig({
    */
   hash: true,
 
-  publicPath: './',
+  publicPath: process.env.NODE_ENV === 'production' ? './' : '/',
 
   /**
    * @name 使用 hash 路由

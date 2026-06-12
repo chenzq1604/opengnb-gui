@@ -4,7 +4,7 @@
  *              Index 节点列表与 Index 节点管理页面实时同步
  */
 import React, { useEffect, useState } from 'react';
-import { Card, App, Typography, Alert, Input, Select, Space, List, Button, Popconfirm, Empty, Tooltip } from 'antd';
+import { Card, App, Typography, Alert, Input, Select, Space, List, Button, Popconfirm, Empty, Tooltip, Tour } from 'antd';
 import {
   ClockCircleOutlined,
   DeleteOutlined,
@@ -67,6 +67,8 @@ const QuickStart: React.FC = () => {
   const [editingSelectedIndex, setEditingSelectedIndex] = useState<string | undefined>();
   /** 编辑时自定义 Index 地址 */
   const [editingCustomIndex, setEditingCustomIndex] = useState('');
+  /** Lite 新手引导是否打开 */
+  const [liteTourOpen, setLiteTourOpen] = useState(false);
 
   /** 加载历史记录 */
   const loadHistory = async () => {
@@ -90,11 +92,25 @@ const QuickStart: React.FC = () => {
     const collapseTimer = setTimeout(() => {
       setAlertCollapsed(true);
     }, 2000);
+    const tourTimer = setTimeout(() => {
+      if (localStorage.getItem('opengnb-tour-lite-done') !== 'true') {
+        setLiteTourOpen(true);
+      }
+    }, 500);
     return () => {
       unsubscribe();
       clearTimeout(collapseTimer);
+      clearTimeout(tourTimer);
     };
   }, []);
+
+  /**
+   * @name 关闭 Lite 新手引导
+   */
+  const closeLiteTour = () => {
+    localStorage.setItem('opengnb-tour-lite-done', 'true');
+    setLiteTourOpen(false);
+  };
 
   // 首次加载时设置默认 Index
   useEffect(() => {
@@ -302,11 +318,40 @@ const QuickStart: React.FC = () => {
   const onlineNodes = indexNodes.filter((n) => n.status === 'online');
   const otherNodes = indexNodes.filter((n) => n.status !== 'online');
 
+  /** Lite 新手引导步骤 */
+  const liteTourSteps = [
+    {
+      title: '欢迎使用 Lite 快速模式',
+      description: 'Lite 模式是最简单的连接方式，只需填写几个参数即可建立虚拟网络。',
+      target: null,
+    },
+    {
+      title: '填写节点ID',
+      description: '输入您的节点ID，例如 1001。节点ID是您在虚拟网络中的唯一标识。',
+      target: () => document.getElementById('lite-node-id') || document.body,
+    },
+    {
+      title: '配置连接参数',
+      description: '选择一个 Index 服务器地址，输入 Passcode。同一网络中的节点需要使用相同的 Passcode。',
+      target: () => document.getElementById('lite-index-passcode') || document.body,
+    },
+    {
+      title: '启动节点',
+      description: '点击启动按钮，节点将开始运行。启动后可在仪表盘查看连接状态和流量信息。',
+      target: () => document.getElementById('lite-start-button') || document.body,
+    },
+  ];
+
   return (
     <PageContainer
       header={{
         title: '快速配置',
         subTitle: 'Lite 模式快速配置与启动',
+        extra: [
+          <Button key="tour" icon={<InfoCircleOutlined />} onClick={() => setLiteTourOpen(true)}>
+            新手引导
+          </Button>,
+        ],
       }}
     >
       <Card style={{ maxWidth: 700 }}>
@@ -343,6 +388,7 @@ const QuickStart: React.FC = () => {
           onFinish={handleSubmit}
           submitter={{
             searchConfig: { submitText: '启动节点' },
+            render: (_, dom) => <div id="lite-start-button">{dom}</div>,
           }}
         >
           <ProFormDigit
@@ -365,11 +411,12 @@ const QuickStart: React.FC = () => {
                 },
               },
             ]}
-            fieldProps={{ min: 1000, max: 9999999999, precision: 0, controls: false }}
+            fieldProps={{ id: 'lite-node-id', min: 1000, max: 9999999999, precision: 0, controls: false }}
           />
 
-          {/* Index 地址选择区域 */}
-          <div style={{ marginBottom: 24 }}>
+          <div id="lite-index-passcode">
+            {/* Index 地址选择区域 */}
+            <div style={{ marginBottom: 24 }}>
             <div style={{ marginBottom: 8 }}>
               <Text strong>Index 地址</Text>
               <span style={{ color: '#ff4d4f', marginLeft: 4 }}>*</span>
@@ -430,16 +477,17 @@ const QuickStart: React.FC = () => {
             )}
           </div>
 
-          <ProFormText
-            name="passcode"
-            label="Passcode"
-            placeholder="4-8位纯数字，用于加密通信"
-            tooltip="相同 Passcode 的节点之间会自动建立安全通信"
-            rules={[
-              { required: true, message: '请输入 Passcode' },
-              { pattern: /^[0-9]{4,8}$/, message: '请输入 4-8 位纯数字' },
-            ]}
-          />
+            <ProFormText
+              name="passcode"
+              label="Passcode"
+              placeholder="4-8位纯数字，用于加密通信"
+              tooltip="相同 Passcode 的节点之间会自动建立安全通信"
+              rules={[
+                { required: true, message: '请输入 Passcode' },
+                { pattern: /^[0-9]{4,8}$/, message: '请输入 4-8 位纯数字' },
+              ]}
+            />
+          </div>
 
           <ProFormText
             name="peerNodeId"
@@ -644,6 +692,12 @@ const QuickStart: React.FC = () => {
         open={waitingState.visible}
         nodeId={waitingState.nodeId}
         onClose={() => setWaitingState({ visible: false, nodeId: '' })}
+      />
+      <Tour
+        open={liteTourOpen}
+        onClose={closeLiteTour}
+        steps={liteTourSteps}
+        scrollIntoViewOptions
       />
     </PageContainer>
   );

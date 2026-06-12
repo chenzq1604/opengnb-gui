@@ -60,7 +60,7 @@
     "appId": "com.opengnb.gui",
     "productName": "OpenGNB",
     "directories": {
-      "output": "D:/source/trace/project1/opengnb-gui-dist-v8"
+      "output": "D:/source/trace/project1/opengnb-gui-dist-v9"
     },
     "files": [
       {

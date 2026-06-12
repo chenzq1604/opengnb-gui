@@ -9,7 +9,7 @@ OpenGNB GUI 是 [OpenGNB](https://github.com/opengnb/opengnb) 的 Windows 图形
 
 ***
 
-![alt text](局部截取_20260612_122417.png)
+![仪表盘](docs/images/dashboard.png)
 
 ## 简介
 
